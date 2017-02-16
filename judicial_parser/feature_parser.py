@@ -49,10 +49,38 @@ class text_converter():
 
 			file_object.seek(0)
 			supreme_remand = self.parse_supreme_remand(file_object)
+			
+			file_object.seek(0)
+			judge_info = self.parse_judges(file_object)
 
 			writer.writerow({'circuit_no' : case_num, "type" : court_type, 'Date of Fed. Cir. Argument' : argument_date, 
 				"Date of Fed. Cir. Decision" : decision_date, 'Previous Fed. Cir. Appeal(Y/N)' : previous_fed, 'Previous Prevailing Party (if Y)' : "", 
-				'Supreme Court remand (Y/N)' : "", 'Supreme Court Prevailing Party (if Y)' : "", "company info" : apelle_info})
+				'Supreme Court remand (Y/N)' : supreme_remand, 'Supreme Court Prevailing Party (if Y)' : "", "company info" : apelle_info})
+
+	#Because of parsing error, some of the PER CURIAM is coming before PER CURIAN
+	def parse_judges(self, file_object):
+		text = file_object.read()
+		match = re.findall(r'.{1,20}\s{1,4}PER\s{1,3}CURIAM\s{1,2}\(.{1,100}\s{1,2}.{1,10}', text)
+		if len(match) > 0:  	#if PER CURIAM exists, then 1st if statement
+			match = match[0].replace('\n', "").replace('AFFIRMED.', "")
+			info_list = match.strip().split(" ")
+			index = info_list.index("PER")
+			result = ' '.join(info_list[index:]) + ' ' + ' '.join(info_list[0:index])
+			result = result.replace('PER CURIAM', "").strip()
+			return result
+		else:
+			file_object.seek(0)
+			data_to_store = []
+			for line in file_object:
+				line_data = line.split('\n')[0].strip()
+				if line_data == "______________________":
+					data_to_store = []
+				elif 'PER CURIAM.' == line_data or 'Judge.' == line_data or 'Judges' == line_data:
+					break;
+				else:
+					data_to_store.append(line_data)
+			print(data_to_store)
+			
 
 	#assumption : previous federal circuit is based on the fact that if they had previous court decision.
 	def parse_previous_fed(self, file_object):
@@ -65,6 +93,17 @@ class text_converter():
 			return 'Y'
 		else:
 			return 'N'
+
+	#algorithm : 
+	def parse_supreme_remand(self, file_object):
+		text = file_object.read()
+		match = re.findall(r'.{1,30}\s{1,3}Supreme\s{1,4}Court', text)
+		for string in match:
+			string = string.replace('\n', "")
+			if 'remand' in string and 'Supreme Court' in string:
+				return 'Y'
+		return 'N'
+
 
 	def parse_date(self, file_object):
 		text = file_object.read()
@@ -124,7 +163,7 @@ class text_converter():
 		return match[0]
 
 	def parse_filedate(self, file_name):
-		match = re.findall(r'\d{1,2}-\d{2,4}-\d{4}', file_name)
+		match = re.findall(r'\d{1,2}-\d{1,4}-\d{4}', file_name)
 		return match[0]
 
 
