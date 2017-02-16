@@ -1,6 +1,5 @@
-# Author : Jin Yong Shin 
+# Author : Jin Yong Shin
 # Date : 2017.02.09
-# @copyright : Jin Yong Shin
 
 # Purpose : First phase of parsing text file that is converted from PDF
 # Might contains some unnecessary spacings
@@ -51,8 +50,14 @@ class text_converter():
 
 	def parse_date(self, file_object):
 		text = file_object.read()
-		match = re.findall(r'(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}', text)
-		file_object.seek(0)
+		match = re.findall(r'Decided:\s{1,3}(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}', text)
+		if len(match) > 0:
+			date = match[0].replace("Decided:", "").strip()
+			return date
+		else:
+			match = re.findall(r'(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}', text)
+			date = match[-1].strip()
+			return date
 		# for line in file_object:
 		# 	line_data = line.split('\n')[0].strip()
 		# 	for element in match:
