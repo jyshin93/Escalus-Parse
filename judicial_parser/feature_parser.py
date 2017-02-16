@@ -25,28 +25,46 @@ class text_converter():
 			
 
 	def parse_main(self):
-		csv_file = open("phase1.csv", 'w')
-		fieldnames = ['circuit_no', 'type', 'file_date', 'dates', 'company info']
+		csv_file = open("phase2.csv", 'w')
+		fieldnames = ['circuit_no', 'type', 'Date of Fed. Cir. Argument', 'Date of Fed. Cir. Decision', 'Previous Fed. Cir. Appeal(Y/N)', 'Previous Prevailing Party (if Y)',
+					 'Supreme Court remand (Y/N)', 'Supreme Court Prevailing Party (if Y)', 'company info']
 		writer = csv.DictWriter(csv_file, fieldnames = fieldnames)
 		writer.writeheader()
 		for file_path in self.file_list:
 			file_object = open(file_path, 'rb')
-			#parse date from txt
-			judge_date = self.parse_date(file_object)
-			#parse apelle
+			
+			decision_date = self.parse_date(file_object)			#parse date from txt
+			
 			file_object.seek(0)
-			apelle_info = self.parse_apellee(file_object)
-			#parse type of course appeals
+			apelle_info = self.parse_apellee(file_object)			#parse apelle
+
 			file_object.seek(0)
-			court_type = self.parse_type(file_object)
+			court_type = self.parse_type(file_object)				#parse type of course appeals
+			
+			case_num = self.parse_case_no(file_path)				#federal court case number
+			argument_date = self.parse_filedate(file_path) 			#argument date
 
-			case_num = self.parse_case_no(file_path)
+			file_object.seek(0)
+			previous_fed = self.parse_previous_fed(file_object)
 
-			#file date
-			file_date = self.parse_filedate(file_path)
+			file_object.seek(0)
+			supreme_remand = self.parse_supreme_remand(file_object)
 
-			writer.writerow({'circuit_no' : case_num, "type" : court_type, 'file_date' : file_date, "dates" : judge_date, "company info" : apelle_info})
+			writer.writerow({'circuit_no' : case_num, "type" : court_type, 'Date of Fed. Cir. Argument' : argument_date, 
+				"Date of Fed. Cir. Decision" : decision_date, 'Previous Fed. Cir. Appeal(Y/N)' : previous_fed, 'Previous Prevailing Party (if Y)' : "", 
+				'Supreme Court remand (Y/N)' : "", 'Supreme Court Prevailing Party (if Y)' : "", "company info" : apelle_info})
 
+	#assumption : previous federal circuit is based on the fact that if they had previous court decision.
+	def parse_previous_fed(self, file_object):
+		text = file_object.read()
+		match = re.findall(r'Appeals\s{1,3}from\s{1,3}the\s{1,3}United\s{1,3}States\s{1,3}.{1,10}\s{1,3}Court', text)
+		match2 = re.findall(r'Appeal\s{1,3}from\s{1,3}the\s{1,3}United\s{1,3}States\s{1,3}.{1,10}\s{1,3}Court', text)
+		if len(match) > 0:
+			return 'Y'
+		elif len(match2) > 0:
+			return 'Y'
+		else:
+			return 'N'
 
 	def parse_date(self, file_object):
 		text = file_object.read()
